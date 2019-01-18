@@ -1,19 +1,28 @@
 import React, { Component, Fragment } from 'react'
-import './TodoList.css'
 import TodoItem from './TodoItem'
+// import Test from './Test'
+import './TodoList.css'
 
 export default class TodoList extends Component {
   constructor(props) {
     super(props);
+    // 当组件的state或者props发生改变时，render函数就会重新执行
     this.state = {
       inputValue: '',
       list: []
     }
     this.handleInputChange = this.handleInputChange.bind(this);
-    this.handleButtonClick = this.handleButtonClick.bind(this);
+    this.handleBtnClick = this.handleBtnClick.bind(this);
     this.handleItemDelete = this.handleItemDelete.bind(this);
   }
+  
+  // 在组件即将被挂载到页面的时刻自动执行
+  componentWillMount() {
+    console.log('componentWillMount');
+  }
+
   render() {
+    console.log('parent render');
     return (
       <Fragment>
         <div>
@@ -25,10 +34,12 @@ export default class TodoList extends Component {
             id="insertArea"
             className='input' 
             value={this.state.inputValue}
-            onChange={this.handleInputChange}/>
-          <button onClick={this.handleButtonClick}>提交</button>
+            onChange={this.handleInputChange}
+            ref={(inputEle) => {this.input = inputEle}}
+          />
+          <button onClick={this.handleBtnClick}>提交</button>
         </div>
-        <ul>
+        <ul ref={(ul) => {this.ul = ul}}>
           { this.getTodoItem() }
           {
             /* 使用 dangerouslySetInnerHTML 属性时可以不转义html标签，有被XSS攻击危险
@@ -40,8 +51,32 @@ export default class TodoList extends Component {
             */
           }
         </ul>
+        {/*<Test content={this.state.inputValue}/>*/}
       </Fragment>
     )
+  }
+
+  // 组件被挂载到页面之后，自动被执行
+  componentDidMount() {
+    console.log('componentDidMount');
+  }
+
+  // 组件被更新之前，它会自动被执行
+  shouldComponentUpdate() {
+    console.log('shouldComponentUpdate');
+    return true;
+  }
+
+  // 组件被更新之前，它会自动执行，但是它在shouldComponentUpdate之后执行，
+  // 如果shouldComponentUpdate返回true它才会执行
+  // 如果返回false，这个函数就不会执行后续生命周期函数了
+  componentWillUpdate() {
+    console.log('componentWillUpdate');
+  }
+
+  // 组件更新完成之后，它会被执行
+  componentDidUpdate() {
+    console.log('componentDidUpdate');
   }
 
   getTodoItem() {
@@ -50,8 +85,8 @@ export default class TodoList extends Component {
         <div key={index}>
           {/* 父传子(属性传值)，子传父（父方法传给子，子调用父方法） */}
           <TodoItem 
+            index={item}
             content={item} 
-            index={index}
             removeItem = {this.handleItemDelete}  // bind：强制指定this的指向
           />
           {
@@ -73,13 +108,14 @@ export default class TodoList extends Component {
     // });
 
     // 改写后的异步写法：
-    const value = e.target.value;
+    // const value = e.target.value;
+    const value = this.input.value;  // 采用ref，不建议！动画可用
     this.setState(() => ({
       inputValue: value
     }));
   }
 
-  handleButtonClick() {
+  handleBtnClick() {
     // 改写前：
     // this.setState({
     //   list: [...this.state.list, this.state.inputValue],
@@ -90,7 +126,9 @@ export default class TodoList extends Component {
     this.setState((prevState) => ({
       list: [...prevState.list, prevState.inputValue],
       inputValue: ''
-    }));
+    }), () => { // 获取DOM
+      console.log(this.ul.querySelectorAll('div').length)
+    });
   }
 
   handleItemDelete(index) {

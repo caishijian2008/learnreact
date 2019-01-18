@@ -1,0 +1,63 @@
+（一）虚拟DOM就是一个JS对象，用它来描述真实DOM，因此创建JS对象并不损耗性能，但是创建真实DOM和比较真实DOM很耗性能。
+
+底层原理步骤：
+1. state 数据
+2. JSX 模板
+
+3. 数据+模板 生成虚拟DOM（虚拟DOM就是一个JS对象，用它来描述真实DOM）（损耗了性能）
+['div', {id: 'abc'}, ['span', {}, 'hello world']]
+
+4. 用虚拟DOM的结构生成真实的DOM，来显示
+<div id="abc"><span>hello world</span></div>
+
+5. state 发生变化
+
+6. 数据+模板 生成新的虚拟DOM （极大的提升了性能）
+['div', {id: 'abc'}, ['span', {}, 'bye bye']]
+
+7. 比较原始虚拟DOM和新的虚拟DOM的区别，找到区别是span中的内容（极大的提升性能）
+
+8. 直接操作DOM，改变span中的内容
+
+优点：
+1. 性能提升了。
+2. 它使得跨端应用得以实现。React Native
+
+
+render() {
+  // JSX -> createElement -> 虚拟DOM（JS对象） -> 真实的DOM
+  // return <div><span>item</span></div>;
+  return React.createElement('div', {}, React.createElement('span', {} 'item'));
+}
+
+（二）Diff算法：
+采用同层比对，原始虚拟DOM和新的虚拟DOM的差异
+组件中尽可能不要使用index作为key值，因为index值不稳定，会造成性能上的问题
+
+
+（三）生命周期函数：
+指在某一个时刻组件会自动调用执行的函数
+
+1.Initialization 阶段
+在constructor()中完成数据初始化，setup props and state
+
+2.Mounting 阶段
+componentWillMount(): 组件即将被挂载到页面的时刻自动执行。
+render()：渲染页面。
+componentDidMount()：组件被挂载到页面之后，自动被执行。
+
+3.Updation 阶段
+shouldComponentUpdate()：组件被更新之前，它会自动被执行，需要返回true或者false来返回结果。
+componentWillUpdate(): 组件被更新之前，它会自动执行，但是它在shouldComponentUpdate之后执行，如果shouldComponentUpdate返回true它才会执行，如果返回false，这个函数就不会执行，以及后续的生命周期函数了。
+render()：渲染页面。
+componentDidUpdate()：组件更新完成之后，它会被执行。
+componentWillReceiveProps(): 放在子组件中。一个组件要从父组件接收参数，只要父组件的render函数被重新执行了，子组件的这个生命周期函数就会被执行，即：如果这个组件第一次存在于父组件中，不会执行，如果这个组件之前已经存在于父组件中，才会执行。
+
+对于state：
+shouldComponentUpdate -> componentWillUpdate -> render -> componentDidUpdate
+
+对于props：
+componentWillReceiveProps -> shouldComponentUpdate -> componentWillUpdate -> render -> componentDidUpdate
+
+4.Unmounting 阶段
+componentWillUnmount(): 当这个组件即将被从页面中剔除的时候，会被执行.
