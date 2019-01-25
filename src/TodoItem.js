@@ -7,36 +7,31 @@ class TodoItem extends Component {
     super(props);
     this.handleClick = this.handleClick.bind(this);
   }
+
+  // 性能优化：避免无谓的render操作
+  shouldComponentUpdate(nextProps, nextState) {
+    if(nextProps.content !== this.props.content) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   render() {
     console.log('child render');
-    // {this.props.content} 等价于：
-    const { content, test } = this.props;
+    const { content} = this.props;
     return (
       <div onClick={this.handleClick}>
-        {/*{this.props.content}*/}
-        {content} - {test}
+        {content}
       </div>
     )
   }
 
-  handleClick () {  // 子组件调用父组件的方法(子传父)
-    // this.props.removeItem(this.props.index) 等价于：
+  handleClick () {
     const {removeItem, index} = this.props;
     removeItem(index);
   }
 
-  // 一个组件要从父组件接收参数。
-  // 只要父组件的render函数被重新执行了，子组件的这个生命周期函数就会被执行，即：
-  // 如果这个组件第一次存在于父组件中，不会执行
-  // 如果这个组件之前已经存在于父组件中，才会执行
-  componentWillReceiveProps() {
-    console.log('child componentWillReceiveProps');
-  }
-
-  // 当这个组件即将被从页面中剔除的时候，会被执行
-  componentWillUnmount() {
-    console.log('child componentWillUnmount');
-  }
 }
 
 TodoItem.propTypes = {

@@ -1,28 +1,155 @@
-（一）虚拟DOM就是一个JS对象，用它来描述真实DOM，因此创建JS对象并不损耗性能，但是创建真实DOM和比较真实DOM很耗性能。
+（一）1.当组件的state或者props发生改变时，render函数就会重新执行
+2.使用bind()强制指定this的指向：this.handleInputChange.bind(this)。
+3.render函数内部的注释采用：{/* 注释 */} 的形式。
+4.组件render函数的return只能返回一个元素，也就是需要有一个顶层节点，可用<Fragment>...</Fragment>占位符替代（v16版本才有），它本身并不会被渲染成任何的html标签。
+5.label 的for属性被htmlFor替代，标签的class属性被className替代。
+6.使用 dangerouslySetInnerHTML 属性时可以实现不转义html标签，但有被XSS攻击危险：
+<li 
+  key={index} 
+  onClick={this.handleItemDelete.bind(this, index)}
+  dangerouslySetInnerHTML={{__html: item}}>
+</li>
+7.为提高性能，将方法事件的this绑定提取到constructor()函数实现，即把形如onChange={this.handleInputChange.bind(this)}拆开，在constructor()函数内this.handleInputChange = this.handleInputChange.bind(this)，然后onChange={this.handleInputChange}。
+8.this.setState()改版：
+例子：
+handleInputChange(e) {
+  // 改写前：
+  // this.setState({  // 同步写法
+  //   inputValue: e.target.value
+  // });
+
+  // 改写后
+  // const value = e.target.value;  // 原生写法
+  const value = this.input.value;  // 采用了ref的写法，不建议直接操作DOM！但动画可用
+  this.setState(() => ({  // 异步写法：v16版本后推荐
+    inputValue: value
+  }));
+}
+
+handleBtnClick() {
+  // 改写前：
+  // this.setState({
+  //   list: [...this.state.list, this.state.inputValue],
+  //   inputValue: ''  // 清空输入框内容
+  // })
+
+  // 改写后：
+  this.setState((prevState) => ({  // 用prevState代替this.state
+    list: [...prevState.list, prevState.inputValue],
+    inputValue: ''
+  }), () => {  // ref：使用setState的第二个参数获取DOM。可避免获取节点数目错误，因为setState是异步方法
+    console.log(this.ul.querySelectorAll('div').length)
+  });
+}
+
+handleItemDelete(index) {
+  // immutable：
+  // state 不允许直接做任何的改变，即
+  // this.state.list.splice(index,1) 是不被允许的。
+  // 改写前：
+  // const list = [...this.state.list];  // 拷贝list副本
+  // list.splice(index, 1);  // 删除一项
+  // this.setState({
+  //   list  // 等价于 list: list， es6语法
+  // });
+
+  // 改写后：
+  this.setState((prevState) => {
+    const list = [...prevState.list];
+    list.splice(index, 1);
+    return { list }
+  })
+
+9.使用PropTypes插件作为验证器：
+TodoItem.propTypes = {
+  test: PropTypes.string.isRequired,
+  content: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number
+  ]),
+  removeItem: PropTypes.func,
+  index: PropTypes.number
+}
+
+TodoItem.defaultProps = {
+  test: 'hello world'
+}
+
+10.使用ref操作DOM：
+<input  
+  type="text" 
+  id="insertArea"
+  className='input' 
+  value={this.state.inputValue}
+  onChange={this.handleInputChange}
+  ref={(inputEle) => {this.input = inputEle}}
+/>
+
+而后可在handleInputChange()方法调用：
+
+handleInputChange() {
+  const value = this.input.value;  // 采用了ref的写法，不建议直接操作DOM！但用动画时可以
+  this.setState(() => ({
+    inputValue: value
+  }));
+}
+
+（二）父子组件数据传递
+父组件中：
+//父传子(属性传值)，子传父（父方法传给子，子调用父方法）
+this.state.list.map((item, index) => {
+  return (
+      <TodoItem 
+        key={item}  // React要求key属性必须要有，原因：Diff算法，否则：Warning: Each child in an array or iterator should have a unique "key" prop.
+        index={index}  // index：循环的参数，传给子组件
+        content={item}   // content：循环的item值，传给子组件
+        removeItem = {this.handleItemDelete}  // removeItem：供子组件调用，传给子组件；handleItemDelete：父组件的方法
+      />
+  )
+})
+
+子组件中;
+constructor(props) {
+  super(props);  // props：接收自父组件的数据
+  this.handleClick = this.handleClick.bind(this);
+}
+render() {
+  console.log('child render');
+  // {this.props.content} 等价于：
+  const { content} = this.props;  // props：接收自父组件的数据
+  return (
+    <div onClick={this.handleClick}>
+      {content}
+    </div>
+  )
+}
+
+handleClick () {  // 子组件调用父组件的方法(子传父)
+  // this.props.removeItem(this.props.index) 等价于：
+  const {removeItem, index} = this.props;
+  removeItem(index);
+}
+
+
+
+（三）虚拟DOM就是一个JS对象，用它来描述真实DOM，因此创建JS对象并不损耗性能，但是创建真实DOM和比较真实DOM很耗性能。
 
 底层原理步骤：
 1. state 数据
 2. JSX 模板
-
 3. 数据+模板 生成虚拟DOM（虚拟DOM就是一个JS对象，用它来描述真实DOM）（损耗了性能）
 ['div', {id: 'abc'}, ['span', {}, 'hello world']]
-
 4. 用虚拟DOM的结构生成真实的DOM，来显示
 <div id="abc"><span>hello world</span></div>
-
 5. state 发生变化
-
 6. 数据+模板 生成新的虚拟DOM （极大的提升了性能）
 ['div', {id: 'abc'}, ['span', {}, 'bye bye']]
-
 7. 比较原始虚拟DOM和新的虚拟DOM的区别，找到区别是span中的内容（极大的提升性能）
-
 8. 直接操作DOM，改变span中的内容
 
 优点：
 1. 性能提升了。
 2. 它使得跨端应用得以实现。React Native
-
 
 render() {
   // JSX -> createElement -> 虚拟DOM（JS对象） -> 真实的DOM
@@ -30,21 +157,20 @@ render() {
   return React.createElement('div', {}, React.createElement('span', {} 'item'));
 }
 
-（二）Diff算法：
+（四）Diff算法：
 采用同层比对，原始虚拟DOM和新的虚拟DOM的差异
 组件中尽可能不要使用index作为key值，因为index值不稳定，会造成性能上的问题
 
 
-（三）生命周期函数：
+（五）生命周期函数：
 指在某一个时刻组件会自动调用执行的函数
-
 1.Initialization 阶段
 在constructor()中完成数据初始化，setup props and state
 
 2.Mounting 阶段
 componentWillMount(): 组件即将被挂载到页面的时刻自动执行。
 render()：渲染页面。
-componentDidMount()：组件被挂载到页面之后，自动被执行。
+componentDidMount()：组件被挂载到页面之后，自动被执行。（Ajax）
 
 3.Updation 阶段
 shouldComponentUpdate()：组件被更新之前，它会自动被执行，需要返回true或者false来返回结果。
@@ -61,3 +187,100 @@ componentWillReceiveProps -> shouldComponentUpdate -> componentWillUpdate -> ren
 
 4.Unmounting 阶段
 componentWillUnmount(): 当这个组件即将被从页面中剔除的时候，会被执行.
+
+
+（六）使用生命周期函数做性能优化
+// 子组件的性能优化：避免无谓的render操作
+shouldComponentUpdate(nextProps, nextState) {
+  if(nextProps.content !== this.props.content) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+（七）接收Ajax请求
+componentDidMount() 中接收Ajax请求，该函数只会被执行一次
+
+（八）React css过渡与动画效果
+.show{  // css过渡
+  opacity: 1;
+  transition: all 1s ease-in;
+}
+
+.show {  // 动画效果
+  animation: show-item 2s ease-in forwards;
+}
+@keyframes show-item {  // 动画效果
+  0% {
+    opacity: 0;
+    color: red;
+  }
+  50% {
+    opacity: .5;
+    color: green;
+  }
+  100% {
+    opacity: 1;
+    color: blue;
+  }
+}
+
+（九）react-transition-group插件显示css动画：
+import { CSSTransition, TransitionGroup } from 'react-transition-group';
+1.为单个元素使用动画
+js文件中：
+<CSSTransition
+  in={this.state.show}
+  timeout={1000}
+  classNames='fade'
+  unmountOnExit
+  onEntered={el => {el.style.color='red'}}
+  appear={true}
+>
+  <div>aaa</div>
+</CSSTransition>
+
+css文件中：
+.fade-enter, .fade-appear {
+  opacity: 0;
+}
+.fade-enter-active, .fade-appear-active {
+  opacity: 1;
+  transition: opacity 1s ease-in;
+}
+.fade-enter-done {
+  opacity: 1;
+}
+.fade-exit {
+  opacity: 1;
+}
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 1s ease-in;
+}
+.fade-exit-done {
+  opacity: 0;
+}
+
+2.使用TransitionGroup为每一项使用动画
+<TransitionGroup>
+{
+  this.state.list.map((item, index) => {
+    return (
+      <CSSTransition 
+        timeout={1000}
+        classNames='fade'
+        unmountOnExit
+        onEntered={el => {el.style.color='blue'}}
+        appear={true}
+        key={index}
+      >
+        <div>{item}</div>
+      </CSSTransition>
+    )
+  })
+}
+</TransitionGroup>
+
+（十）
