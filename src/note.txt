@@ -94,6 +94,8 @@ handleInputChange() {
   }));
 }
 
+11.当父组件的render函数被运行时，它的子组件的render都将被重新运行一次
+
 （二）父子组件数据传递
 父组件中：
 //父传子(属性传值)，子传父（父方法传给子，子调用父方法）
@@ -283,4 +285,32 @@ css文件中：
 }
 </TransitionGroup>
 
-（十）
+（十）使用Redux创建store
+步骤：
+1. /store/index.js
+import { createStore } from 'redux';
+import reducer from './reducer';
+
+const store = createStore(reducer);
+
+export default store;
+
+2. /store/reducer.js
+const defaultState = {
+  inputValue: 'aaf',
+  list: [1,2]
+};
+
+export default (state = defaultState, action) => {
+  return state;
+}
+
+3. TodoList.js
+...
+import store from './store';
+...
+constructor(props) {
+  super(props);
+  this.state = store.getState();
+}
+...
